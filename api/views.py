@@ -3,25 +3,33 @@ from rest_framework.decorators import api_view
 from api.serializers import EmployeesSerializer
 from base.models import Employees
 import face_recognition
+
+@api_view(['GET'])
+def getData(request):
+    employees = Employees.objects.all()
+    serializer = EmployeesSerializer(employees, many=True)
+    return Response(serializer.data)
+
 @api_view(['POST'])
 def add_employee_photo(request, employee_id):
     try:
         employee = Employees.objects.get(id=employee_id)
     except Employees.DoesNotExist:
-        return Response({"error": "Employee not found."}, status=404)
+        return Response("Employee not found")
     image_file = request.FILES.get('image')
     if not image_file:
-        return Response({"error": "No image provided."}, status=400)
+        return Response("No image provided")
     image = face_recognition.load_image_file(image_file)
     face_encoding = face_recognition.face_encodings(image)[0]
     employee.facial_keypoints = face_encoding.tolist()
     employee.save()
-    return Response({"message": "Facial keypoints added successfully."}, status=201)
+    return Response("Facial keypoints added successfully")
+
 @api_view(['POST'])
 def recognize_employee(request):
     image_file = request.FILES.get('image')
     if not image_file:
-        return Response({"error": "No image provided."}, status=400)
+        return Response("No image provided")
     image = face_recognition.load_image_file(image_file)
     face_encoding = face_recognition.face_encodings(image)[0]
     matches = Employees.objects.filter(facial_keypoints__contains=face_encoding.tolist())
@@ -30,12 +38,8 @@ def recognize_employee(request):
         serializer = EmployeesSerializer(employee)
         return Response(serializer.data)
     else:
-        return Response({"message": "Employee not found."}, status=404)
-@api_view(['GET'])
-def getData(request):
-    employees = Employees.objects.all()
-    serializer = EmployeesSerializer(employees, many=True)
-    return Response(serializer.data)
+        return Response("Employee not found.")
+    
 @api_view(['POST'])
 def add_employee(request):
     serializer = EmployeesSerializer(data=request.data)
@@ -47,5 +51,5 @@ def add_employee(request):
             face_encoding = face_recognition.face_encodings(image)[0]
             employee.facial_keypoints = face_encoding.tolist()
             employee.save()
-        return  Response(serializer.data, status=201)
-    return Response(serializer.errors, status=400)
+        return  Response(serializer.data)
+    return Response(serializer.errors)
