@@ -26,6 +26,20 @@ def add_employee_photo(request, employee_id):
     return Response("Facial keypoints added successfully")
 
 @api_view(['POST'])
+def add_employee(request):
+    serializer = EmployeesSerializer(data=request.data)
+    if serializer.is_valid():
+        employee = serializer.save()
+        image_file = request.FILES.get('image')
+        if image_file:
+            image = face_recognition.load_image_file(image_file)
+            face_encoding = face_recognition.face_encodings(image)[0]
+            employee.facial_keypoints = face_encoding.tolist()
+            employee.save()
+        return  Response(serializer.data)
+    return Response(serializer.errors)
+
+@api_view(['POST'])
 def recognize_employee(request):
     image_file = request.FILES.get('image')
     if not image_file:
@@ -40,16 +54,3 @@ def recognize_employee(request):
     else:
         return Response("Employee not found.")
     
-@api_view(['POST'])
-def add_employee(request):
-    serializer = EmployeesSerializer(data=request.data)
-    if serializer.is_valid():
-        employee = serializer.save()
-        image_file = request.FILES.get('image')
-        if image_file:
-            image = face_recognition.load_image_file(image_file)
-            face_encoding = face_recognition.face_encodings(image)[0]
-            employee.facial_keypoints = face_encoding.tolist()
-            employee.save()
-        return  Response(serializer.data)
-    return Response(serializer.errors)
